@@ -1,10 +1,3 @@
----
-title: "Anonymize PCAP"
-date: 2021-05-16T21:58:38+02:00
-aliases:
-    - /projects/traffic-analysis/anonymize-pcap
----
-
 **anonymizepcap is a Python tool for anonymization of MAC addresses and pseudonymization of IP addresses from \*.pcap files. MAC addresses are substituted with zeros, while IP addresses are substituted either with a password-based HMAC or a first-time-seen mapping.**
 
 ## Features
@@ -78,6 +71,6 @@ aa-complain /usr/sbin/tcpdump
 
 ### Download
 
-* [anonymizepcap-0.2.tar.gz](anonymizepcap-0.2.tar.gz)
+* [anonymizepcap-0.2.tar.gz](https://wander.science/projects/traffic-analysis/anonymizepcap/anonymizepcap-0.2.tar.gz)
 
-*Old version for Python 2.7*: [anonymize-pcap.tar.gz](anonymize-pcap.tar.gz) 
+*Old version for Python 2.7*: [anonymize-pcap.tar.gz](https://wander.science/projects/traffic-analysis/anonymizepcap/anonymize-pcap.tar.gz) 
