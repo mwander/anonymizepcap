@@ -115,6 +115,11 @@ def main(inhandles, outfile, anonnets, offset, secret):
                 # clear MAC address
                 frame.hdr = b'\x00' * len(frame.hdr)
                 packettype = frame.ethtype
+            elif linktype == dpkt.pcap.DLT_LINUX_SLL2: # Linux cooked capture v2 (SLL2)
+                frame = dpkt.sll2.SLL2(data)
+                # clear MAC address
+                frame.hdr = b'\x00' * len(frame.hdr)
+                packettype = frame.ethtype
             else:
                 assert False, 'Linktype {} is not implemented yet'.format(linktype)
 
