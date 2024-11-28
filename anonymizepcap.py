@@ -110,6 +110,12 @@ def main(inhandles, outfile, anonnets, offset, secret):
                 frame.src = b'\x00' * len(frame.src)
                 frame.dst = b'\x00' * len(frame.dst)
                 packettype = frame.type
+
+                # Handle VLANs - TODO: QinQ
+                if frame.type == dpkt.ethernet.ETH_TYPE_8021Q:
+                    # dptk already extracts the VLAN ID in .tag and the next ethernet type in .type
+                    packettype = frame.vlan_tags[0].type
+
             elif linktype == dpkt.pcap.DLT_LINUX_SLL: # Linux cooked capture (SLL)
                 frame = dpkt.sll.SLL(data)
                 # clear MAC address
@@ -141,6 +147,23 @@ def main(inhandles, outfile, anonnets, offset, secret):
                 ip.dst = replace_address(ipmap, ip.dst, offset, secret)
                 reset_cksum = True
 
+            if removepayload or zeropayload:
+                if isinstance(ip.data, dpkt.tcp.TCP) and len(ip.data) > 20:
+                    tcp = ip.data
+                    hlen = len(tcp)-len(tcp.data)
+                    if hlen > 0:
+                        if removepayload:
+                            ip.data = bytes(ip.data)[0:hlen]
+                        elif zeropayload:
+                            ip.data = bytes(ip.data)[0:hlen] + bytes([0] * hlen)
+                elif isinstance(ip.data, dpkt.udp.UDP) and len(ip.data) > 8:
+                    if removepayload:
+                        ip.data.ulen = 8
+                        ip.data = bytes(ip.data)[0:8]
+                    elif zeropayload:
+                        ip.data = bytes(ip.data)[0:8] + bytes([0] * (ip.data.ulen-8))
+
+
             # Reset IP checksums. dpkt serializer will compute new values
             if reset_cksum:
                 ip.sum = 0
@@ -165,6 +188,8 @@ if __name__ == '__main__':
     parser.add_argument('-o', '--offset', help='One byte offset for output IP address range (default: 238)', default=238, type=int)
     parser.add_argument('-s', '--secret', help='Secret for keyed-hash mapping (default: none)')
     parser.add_argument('-i', '--stdin', action='store_true', help='Read pcap input from stdin')
+    parser.add_argument('-x', '--removepayload', action='store_true', help='Remove the payload for TCP/UDP packets')
+    parser.add_argument('-z', '--zeropayload', action='store_true', help='Replace the payload for TCP/UDP packets with zeros (keep the payload size)')
     parser.add_argument('infiles', nargs='*', help='Input pcap filename(s)')
     parser.add_argument('outfile', help='Output pcap filename')
     args = parser.parse_args()
@@ -210,5 +235,19 @@ if __name__ == '__main__':
     else:
         print('No secret given, using first time seen mapping.', file=sys.stderr)
         secret = None
+    
+    if args.removepayload and args.zeropayload:
+        print('ERROR: --removepayload and --zeropayload cannot be used together:', args.outfile, file=sys.stderr)
+        sys.exit(1)
+
+    removepayload = False
+    if args.removepayload:
+        print('Remove payload option selected')
+        removepayload = True
+
+    zeropayload = False
+    if args.zeropayload:
+        print('The payload will be set to zero, keeping the size')
+        zeropayload = True
 
     main(inhandles, args.outfile, anonnets, offset, secret)
